@@ -125,7 +125,7 @@ export default function Index() {
             <span className="font-orbitron font-black text-black text-xs">NX</span>
           </div>
           <span className="font-orbitron font-bold text-lg tracking-widest"
-            style={{ color: "#00f5ff", textShadow: "0 0 15px rgba(0,245,255,0.7)" }}>NEXUS</span>
+            style={{ color: "#00f5ff", textShadow: "0 0 15px rgba(0,245,255,0.7)" }}>DEVEN</span>
           <span className="font-mono text-xs hidden sm:block" style={{ color: "rgba(0,245,255,0.35)" }}>v2.4.1</span>
         </div>
 
