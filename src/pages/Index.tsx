@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import CRMPGame from "@/components/CRMPGame";
 
 const HERO_IMG = "https://cdn.poehali.dev/projects/d3888ee6-1c93-4240-97d7-64d28b4c0960/files/db3a5cb4-41c3-495e-8f29-6a1beb46f549.jpg";
 
@@ -56,6 +57,7 @@ const TROPHIES = [
 
 const NAV = [
   { id: "home", label: "Главная", icon: "Home" },
+  { id: "play", label: "Играть", icon: "Play" },
   { id: "library", label: "Библиотека", icon: "Gamepad2" },
   { id: "profile", label: "Профиль", icon: "User" },
   { id: "friends", label: "Друзья", icon: "Users" },
@@ -238,6 +240,19 @@ export default function Index() {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ─── PLAY ─── */}
+        {activeTab === "play" && (
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-orbitron font-bold text-lg" style={{ color: "#00f5ff", textShadow: "0 0 15px rgba(0,245,255,0.4)" }}>CRMP — ОТКРЫТЫЙ МИР</h2>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-xs" style={{ background: "rgba(0,255,136,0.08)", border: "1px solid rgba(0,255,136,0.25)", color: "#00ff88" }}>
+                ● ОНЛАЙН
+              </div>
+            </div>
+            <CRMPGame />
           </div>
         )}
 
