@@ -304,9 +304,15 @@ export default function CRMPGame() {
 
     // ── INPUT ──
     const keys: Record<string, boolean> = {};
-    const onKey = (e: KeyboardEvent, down: boolean) => { keys[e.key.toLowerCase()] = down; };
-    window.addEventListener("keydown", e => onKey(e, true));
-    window.addEventListener("keyup", e => onKey(e, false));
+    const onKeyDown = (e: KeyboardEvent) => {
+      keys[e.key.toLowerCase()] = true;
+      if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"," "].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => { keys[e.key.toLowerCase()] = false; };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
 
     // ── CAMERA MOUSE ──
     let camYaw = 0, camPitch = 0.3;
@@ -345,11 +351,13 @@ export default function CRMPGame() {
 
     // ── ANIMATE ──
     let animId: number;
-    const clock = new THREE.Clock();
+    let lastTime = performance.now();
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      const dt = Math.min(clock.getDelta(), 0.05);
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
 
       // E key — enter/exit car
       const eDown = keys["e"];
@@ -413,42 +421,44 @@ export default function CRMPGame() {
         setState(s => ({ ...s, inCar: true, speed: Math.round(spd * 3.6), gear, hint: "E — выйти из машины  |  WASD — управление" }));
 
       } else {
-        // Player movement
-        const moveSpeed = keys["shift"] ? 7 : 4;
-        const forward = keys["w"] || keys["arrowup"];
-        const back = keys["s"] || keys["arrowdown"];
-        const left = keys["a"] || keys["arrowleft"];
-        const right = keys["d"] || keys["arrowright"];
+        // Player movement — relative to camera yaw
+        const moveSpeed = keys["shift"] ? 8 : 4;
+        const fw = (keys["w"] || keys["arrowup"]) ? 1 : 0;
+        const bk = (keys["s"] || keys["arrowdown"]) ? 1 : 0;
+        const lt = (keys["a"] || keys["arrowleft"]) ? 1 : 0;
+        const rt = (keys["d"] || keys["arrowright"]) ? 1 : 0;
 
-        const dir = new THREE.Vector3(
-          (right ? 1 : 0) - (left ? 1 : 0),
-          0,
-          (back ? 1 : 0) - (forward ? 1 : 0)
-        );
+        const dx = rt - lt;
+        const dz = bk - fw;
 
-        if (dir.length() > 0) {
-          dir.normalize();
-          // relative to camera
-          const camDir = new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw));
-          const camRight = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
-          const move = new THREE.Vector3()
-            .addScaledVector(camRight, dir.x)
-            .addScaledVector(camDir, -dir.z)
-            .normalize()
-            .multiplyScalar(moveSpeed * dt);
+        if (dx !== 0 || dz !== 0) {
+          // world-space direction based on camera yaw
+          const sinY = Math.sin(camYaw);
+          const cosY = Math.cos(camYaw);
 
-          const nx = playerGroup.position.x + move.x;
-          const nz = playerGroup.position.z + move.z;
+          // forward = -Z in camera space
+          const worldX = dx * cosY + dz * sinY;
+          const worldZ = -dx * sinY + dz * cosY;
+
+          const len = Math.sqrt(worldX * worldX + worldZ * worldZ);
+          const nx = playerGroup.position.x + (worldX / len) * moveSpeed * dt;
+          const nz = playerGroup.position.z + (worldZ / len) * moveSpeed * dt;
 
           if (!checkCollision(nx, nz, 0.5)) {
             playerGroup.position.x = nx;
             playerGroup.position.z = nz;
-            playerAngle = Math.atan2(move.x, move.z);
-            playerGroup.rotation.y = playerAngle;
           }
-
           playerGroup.position.x = Math.max(-190, Math.min(190, playerGroup.position.x));
           playerGroup.position.z = Math.max(-190, Math.min(190, playerGroup.position.z));
+
+          // Rotate player to face movement direction
+          playerAngle = Math.atan2(worldX / len, worldZ / len);
+          playerGroup.rotation.y = playerAngle;
+
+          // Leg animation
+          const t = now * 0.008;
+          bodyMesh.position.y = 0.6 + Math.abs(Math.sin(t * moveSpeed)) * 0.05;
+          headMesh.position.y = 1.5 + Math.abs(Math.sin(t * moveSpeed)) * 0.05;
         }
 
         const near = getNearestCar();
@@ -483,8 +493,8 @@ export default function CRMPGame() {
 
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener("keydown", e => onKey(e, true));
-      window.removeEventListener("keyup", e => onKey(e, false));
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("resize", onResize);
       renderer.dispose();
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
